@@ -65,8 +65,11 @@ struct NatalChartView: View {
                     }
 
                     Button("Рассчитать натальную карту") {
-                        appState.calculateNatalChart(input: input)
+                        Task { await calculateChart() }
                     }
+                }
+                .onChange(of: input.birthPlace) { _, _ in
+                    input.birthLocation = nil
                 }
 
                 if let chart = appState.natalChart {
@@ -74,9 +77,9 @@ struct NatalChartView: View {
                         if let location = chart.location {
                             LabeledContent("Место", value: location.title)
                         }
-                        LabeledContent("Солнце", value: chart.sunSign.rawValue)
-                        LabeledContent("Луна", value: chart.moonSign.rawValue)
-                        LabeledContent("Асцендент", value: chart.ascendant.rawValue)
+                        ForEach(chart.placements) { placement in
+                            LabeledContent(placement.bodyName, value: placement.formattedPosition)
+                        }
                         Text(chart.interpretation)
                     }
 
@@ -110,5 +113,13 @@ struct NatalChartView: View {
         } catch {
             searchError = error.localizedDescription
         }
+    }
+
+    private func calculateChart() async {
+        if input.birthLocation == nil && !input.birthPlace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            await searchBirthPlace()
+        }
+
+        appState.calculateNatalChart(input: input)
     }
 }

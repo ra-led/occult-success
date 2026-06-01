@@ -32,11 +32,30 @@ struct NatalChart: Identifiable, Equatable {
     let id = UUID()
     let name: String
     let location: BirthLocation?
+    let calculatedBirthDate: Date
     let sunSign: ZodiacSign
     let moonSign: ZodiacSign
     let ascendant: ZodiacSign
+    let ascendantDegree: Double
+    let midheavenDegree: Double
+    let placements: [NatalPlacement]
     let houses: [String]
     let interpretation: String
+}
+
+struct NatalPlacement: Identifiable, Equatable {
+    let id = UUID()
+    let bodyName: String
+    let longitude: Double
+    let sign: ZodiacSign
+
+    var degreeInSign: Double {
+        longitude.truncatingRemainder(dividingBy: 30)
+    }
+
+    var formattedPosition: String {
+        "\(sign.rawValue) \(String(format: "%.1f°", degreeInSign))"
+    }
 }
 
 enum ZodiacSign: String, CaseIterable, Identifiable {
@@ -54,6 +73,11 @@ enum ZodiacSign: String, CaseIterable, Identifiable {
     case pisces = "Рыбы"
 
     var id: String { rawValue }
+
+    static func from(longitude: Double) -> ZodiacSign {
+        let normalized = ((longitude.truncatingRemainder(dividingBy: 360)) + 360).truncatingRemainder(dividingBy: 360)
+        return allCases[min(11, max(0, Int(normalized / 30)))]
+    }
 }
 
 struct DreamInterpretation: Identifiable, Equatable {
