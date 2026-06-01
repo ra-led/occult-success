@@ -13,6 +13,7 @@ struct NatalChartInput: Equatable {
     var birthDate = Date()
     var birthPlace = ""
     var birthLocation: BirthLocation?
+    var houseSystem: HouseSystem = .wholeSign
 }
 
 struct BirthLocation: Identifiable, Equatable {
@@ -33,28 +34,143 @@ struct NatalChart: Identifiable, Equatable {
     let name: String
     let location: BirthLocation?
     let calculatedBirthDate: Date
+    let houseSystem: HouseSystem
     let sunSign: ZodiacSign
     let moonSign: ZodiacSign
     let ascendant: ZodiacSign
     let ascendantDegree: Double
     let midheavenDegree: Double
     let placements: [NatalPlacement]
-    let houses: [String]
+    let houses: [HouseCusp]
+    let aspects: [NatalAspect]
     let interpretation: String
 }
 
 struct NatalPlacement: Identifiable, Equatable {
     let id = UUID()
-    let bodyName: String
+    let body: CelestialBody
     let longitude: Double
     let sign: ZodiacSign
+    let house: Int
 
     var degreeInSign: Double {
         longitude.truncatingRemainder(dividingBy: 30)
     }
 
     var formattedPosition: String {
-        "\(sign.rawValue) \(String(format: "%.1f°", degreeInSign))"
+        "\(sign.rawValue) \(String(format: "%.2f°", degreeInSign)), \(house) дом"
+    }
+}
+
+struct HouseCusp: Identifiable, Equatable {
+    let number: Int
+    let longitude: Double
+    let sign: ZodiacSign
+
+    var id: Int { number }
+
+    var formattedPosition: String {
+        "\(number) дом: \(sign.rawValue) \(String(format: "%.2f°", longitude.truncatingRemainder(dividingBy: 30)))"
+    }
+}
+
+struct NatalAspect: Identifiable, Equatable {
+    let id = UUID()
+    let first: CelestialBody
+    let second: CelestialBody
+    let kind: AspectKind
+    let orb: Double
+
+    var title: String {
+        "\(first.shortName)-\(second.shortName): \(kind.rawValue), орб \(String(format: "%.1f°", orb))"
+    }
+}
+
+enum AspectKind: String, CaseIterable {
+    case conjunction = "соединение"
+    case sextile = "секстиль"
+    case square = "квадрат"
+    case trine = "трин"
+    case opposition = "оппозиция"
+
+    var angle: Double {
+        switch self {
+        case .conjunction: return 0
+        case .sextile: return 60
+        case .square: return 90
+        case .trine: return 120
+        case .opposition: return 180
+        }
+    }
+}
+
+enum HouseSystem: String, CaseIterable, Identifiable {
+    case wholeSign = "Whole Sign"
+    case equal = "Equal"
+    case placidusApprox = "Placidus beta"
+
+    var id: String { rawValue }
+
+    var description: String {
+        switch self {
+        case .wholeSign:
+            return "дома по целым знакам от асцендента"
+        case .equal:
+            return "равные дома от точного градуса асцендента"
+        case .placidusApprox:
+            return "приближённая квадрантная сетка от ASC/MC"
+        }
+    }
+}
+
+enum CelestialBody: String, CaseIterable, Identifiable {
+    case sun = "Солнце"
+    case moon = "Луна"
+    case mercury = "Меркурий"
+    case venus = "Венера"
+    case mars = "Марс"
+    case jupiter = "Юпитер"
+    case saturn = "Сатурн"
+    case uranus = "Уран"
+    case neptune = "Нептун"
+    case pluto = "Плутон"
+    case ascendant = "ASC"
+    case midheaven = "MC"
+
+    var id: String { rawValue }
+
+    var shortName: String {
+        switch self {
+        case .sun: return "Солнце"
+        case .moon: return "Луна"
+        case .mercury: return "Меркурий"
+        case .venus: return "Венера"
+        case .mars: return "Марс"
+        case .jupiter: return "Юпитер"
+        case .saturn: return "Сатурн"
+        case .uranus: return "Уран"
+        case .neptune: return "Нептун"
+        case .pluto: return "Плутон"
+        case .ascendant: return "ASC"
+        case .midheaven: return "MC"
+        }
+    }
+
+    var glyph: String {
+        switch self {
+        case .sun: return "☉"
+        case .moon: return "☽"
+        case .mercury: return "☿"
+        case .venus: return "♀"
+        case .mars: return "♂"
+        case .jupiter: return "♃"
+        case .saturn: return "♄"
+        case .uranus: return "♅"
+        case .neptune: return "♆"
+        case .pluto: return "♇"
+        case .ascendant: return "A"
+        case .midheaven: return "M"
+        }
     }
 }
 
