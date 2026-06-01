@@ -13,7 +13,7 @@ struct NatalChartInput: Equatable {
     var birthDate = Date()
     var birthPlace = ""
     var birthLocation: BirthLocation?
-    var houseSystem: HouseSystem = .wholeSign
+    var houseSystem: HouseSystem = .placidus
 }
 
 struct BirthLocation: Identifiable, Equatable {
@@ -107,7 +107,7 @@ enum AspectKind: String, CaseIterable {
 enum HouseSystem: String, CaseIterable, Identifiable {
     case wholeSign = "Whole Sign"
     case equal = "Equal"
-    case placidusApprox = "Placidus beta"
+    case placidus = "Placidus"
 
     var id: String { rawValue }
 
@@ -117,8 +117,8 @@ enum HouseSystem: String, CaseIterable, Identifiable {
             return "дома по целым знакам от асцендента"
         case .equal:
             return "равные дома от точного градуса асцендента"
-        case .placidusApprox:
-            return "приближённая квадрантная сетка от ASC/MC"
+        case .placidus:
+            return "квадрантные дома Плацидуса"
         }
     }
 }

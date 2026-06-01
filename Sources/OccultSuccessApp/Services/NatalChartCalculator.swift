@@ -10,6 +10,8 @@ struct NatalChartCalculator {
         let midheavenLongitude = midheavenEclipticLongitude(julianDay: julianDay, location: input.birthLocation)
         let houses = houseCusps(
             system: input.houseSystem,
+            julianDay: julianDay,
+            location: input.birthLocation,
             ascendantLongitude: ascendantLongitude,
             midheavenLongitude: midheavenLongitude
         )
@@ -120,14 +122,14 @@ struct NatalChartCalculator {
         guard let elements = OrbitalElements.elements(for: body, daysFromJ2000: julianDay - 2_451_545.0) else {
             return earthSunLongitude
         }
-        guard let earth = OrbitalElements.elements(for: EarthBody.earth, daysFromJ2000: julianDay - 2_451_545.0) else {
+        guard let sunGeocentric = OrbitalElements.elements(for: EarthBody.earth, daysFromJ2000: julianDay - 2_451_545.0) else {
             return earthSunLongitude
         }
 
         let planet = heliocentricPosition(elements)
-        let earthPosition = heliocentricPosition(earth)
-        let x = planet.x - earthPosition.x
-        let y = planet.y - earthPosition.y
+        let sun = heliocentricPosition(sunGeocentric)
+        let x = planet.x + sun.x
+        let y = planet.y + sun.y
         return normalize(radiansToDegrees(atan2(y, x)))
     }
 
@@ -158,12 +160,11 @@ struct NatalChartCalculator {
     }
 
     private func ascendantEclipticLongitude(julianDay: Double, location: BirthLocation?) -> Double {
-        let latitude = degreesToRadians(location?.latitude ?? 0)
-        let sidereal = degreesToRadians(localSiderealTime(julianDay: julianDay, longitude: location?.longitude ?? 0))
-        let obliquity = degreesToRadians(meanObliquity(julianDay: julianDay))
-        let y = -cos(sidereal)
-        let x = sin(sidereal) * cos(obliquity) + tan(latitude) * sin(obliquity)
-        return normalize(radiansToDegrees(atan2(y, x)))
+        ascendantCrossing(
+            rectAscension: localSiderealTime(julianDay: julianDay, longitude: location?.longitude ?? 0) + 90,
+            poleHeight: location?.latitude ?? 0,
+            obliquity: meanObliquity(julianDay: julianDay)
+        )
     }
 
     private func midheavenEclipticLongitude(julianDay: Double, location: BirthLocation?) -> Double {
@@ -187,7 +188,13 @@ struct NatalChartCalculator {
         return 23.439291111 - 0.013004167 * t - 0.000000164 * t * t + 0.000000504 * t * t * t
     }
 
-    private func houseCusps(system: HouseSystem, ascendantLongitude: Double, midheavenLongitude: Double) -> [HouseCusp] {
+    private func houseCusps(
+        system: HouseSystem,
+        julianDay: Double,
+        location: BirthLocation?,
+        ascendantLongitude: Double,
+        midheavenLongitude: Double
+    ) -> [HouseCusp] {
         let cusps: [Double]
         switch system {
         case .wholeSign:
@@ -195,8 +202,13 @@ struct NatalChartCalculator {
             cusps = (0..<12).map { normalize(ascendantSignStart + Double($0) * 30) }
         case .equal:
             cusps = (0..<12).map { normalize(ascendantLongitude + Double($0) * 30) }
-        case .placidusApprox:
-            cusps = quadrantCusps(ascendantLongitude: ascendantLongitude, midheavenLongitude: midheavenLongitude)
+        case .placidus:
+            cusps = placidusCusps(
+                julianDay: julianDay,
+                location: location,
+                ascendantLongitude: ascendantLongitude,
+                midheavenLongitude: midheavenLongitude
+            )
         }
 
         return cusps.enumerated().map { index, longitude in
@@ -223,6 +235,125 @@ struct NatalChartCalculator {
             interpolateClockwise(from: tenth, to: first, fraction: 1 / 3),
             interpolateClockwise(from: tenth, to: first, fraction: 2 / 3)
         ]
+    }
+
+    private func placidusCusps(
+        julianDay: Double,
+        location: BirthLocation?,
+        ascendantLongitude: Double,
+        midheavenLongitude: Double
+    ) -> [Double] {
+        let latitude = location?.latitude ?? 0
+        let obliquity = meanObliquity(julianDay: julianDay)
+        guard abs(latitude) < 90 - obliquity else {
+            return quadrantCusps(ascendantLongitude: ascendantLongitude, midheavenLongitude: midheavenLongitude)
+        }
+
+        let sidereal = localSiderealTime(julianDay: julianDay, longitude: location?.longitude ?? 0)
+        let helperAngle = asinDegrees(tanDegrees(latitude) * tanDegrees(obliquity))
+        let firstPole = atanDegrees(sinDegrees(helperAngle / 3) / tanDegrees(obliquity))
+        let secondPole = atanDegrees(sinDegrees(helperAngle * 2 / 3) / tanDegrees(obliquity))
+
+        let cusp11 = placidusIntermediateCusp(
+            rectAscension: normalize(sidereal + 30),
+            initialPole: firstPole,
+            divisor: 3,
+            latitude: latitude,
+            obliquity: obliquity
+        )
+        let cusp12 = placidusIntermediateCusp(
+            rectAscension: normalize(sidereal + 60),
+            initialPole: secondPole,
+            divisor: 1.5,
+            latitude: latitude,
+            obliquity: obliquity
+        )
+        let cusp2 = placidusIntermediateCusp(
+            rectAscension: normalize(sidereal + 120),
+            initialPole: secondPole,
+            divisor: 1.5,
+            latitude: latitude,
+            obliquity: obliquity
+        )
+        let cusp3 = placidusIntermediateCusp(
+            rectAscension: normalize(sidereal + 150),
+            initialPole: firstPole,
+            divisor: 3,
+            latitude: latitude,
+            obliquity: obliquity
+        )
+
+        return [
+            normalize(ascendantLongitude),
+            cusp2,
+            cusp3,
+            normalize(midheavenLongitude + 180),
+            normalize(cusp11 + 180),
+            normalize(cusp12 + 180),
+            normalize(ascendantLongitude + 180),
+            normalize(cusp2 + 180),
+            normalize(cusp3 + 180),
+            normalize(midheavenLongitude),
+            cusp11,
+            cusp12
+        ]
+    }
+
+    private func placidusIntermediateCusp(
+        rectAscension: Double,
+        initialPole: Double,
+        divisor: Double,
+        latitude: Double,
+        obliquity: Double
+    ) -> Double {
+        var cusp = ascendantCrossing(rectAscension: rectAscension, poleHeight: initialPole, obliquity: obliquity)
+        var previous = cusp
+
+        for iteration in 0..<100 {
+            let tangent = tanDegrees(asinDegrees(sinDegrees(obliquity) * sinDegrees(cusp)))
+            guard abs(tangent) > 0.00000001 else { return normalize(rectAscension) }
+
+            let poleHeight = atanDegrees(sinDegrees(asinDegrees(tanDegrees(latitude) * tangent) / divisor) / tangent)
+            cusp = ascendantCrossing(rectAscension: rectAscension, poleHeight: poleHeight, obliquity: obliquity)
+
+            if iteration > 0 && abs(signedDifference(cusp, previous)) < 0.000001 {
+                return cusp
+            }
+            previous = cusp
+        }
+
+        return cusp
+    }
+
+    private func ascendantCrossing(rectAscension: Double, poleHeight: Double, obliquity: Double) -> Double {
+        let normalizedRectAscension = normalize(rectAscension)
+        let quadrant = Int(normalizedRectAscension / 90) + 1
+        let sine = sinDegrees(obliquity)
+        let cosine = cosDegrees(obliquity)
+
+        let longitude: Double
+        switch quadrant {
+        case 1:
+            longitude = ascendantCrossingInFirstQuadrant(rectAscension: normalizedRectAscension, poleHeight: poleHeight, sine: sine, cosine: cosine)
+        case 2:
+            longitude = 180 - ascendantCrossingInFirstQuadrant(rectAscension: 180 - normalizedRectAscension, poleHeight: -poleHeight, sine: sine, cosine: cosine)
+        case 3:
+            longitude = 180 + ascendantCrossingInFirstQuadrant(rectAscension: normalizedRectAscension - 180, poleHeight: -poleHeight, sine: sine, cosine: cosine)
+        default:
+            longitude = 360 - ascendantCrossingInFirstQuadrant(rectAscension: 360 - normalizedRectAscension, poleHeight: poleHeight, sine: sine, cosine: cosine)
+        }
+
+        return normalize(longitude)
+    }
+
+    private func ascendantCrossingInFirstQuadrant(rectAscension: Double, poleHeight: Double, sine: Double, cosine: Double) -> Double {
+        let denominator = cosine * cosDegrees(rectAscension) - tanDegrees(poleHeight) * sine
+        if abs(denominator) < 0.00000001 {
+            return sinDegrees(rectAscension) < 0 ? 270 : 90
+        }
+
+        let longitude = atanDegrees(sinDegrees(rectAscension) / denominator)
+        return longitude < 0 ? longitude + 180 : longitude
     }
 
     private func interpolateClockwise(from start: Double, to end: Double, fraction: Double) -> Double {
@@ -297,6 +428,31 @@ struct NatalChartCalculator {
 
     private func radiansToDegrees(_ radians: Double) -> Double {
         radians * 180 / .pi
+    }
+
+    private func sinDegrees(_ degrees: Double) -> Double {
+        sin(degreesToRadians(degrees))
+    }
+
+    private func cosDegrees(_ degrees: Double) -> Double {
+        cos(degreesToRadians(degrees))
+    }
+
+    private func tanDegrees(_ degrees: Double) -> Double {
+        tan(degreesToRadians(degrees))
+    }
+
+    private func asinDegrees(_ value: Double) -> Double {
+        radiansToDegrees(asin(max(-1, min(1, value))))
+    }
+
+    private func atanDegrees(_ value: Double) -> Double {
+        radiansToDegrees(atan(value))
+    }
+
+    private func signedDifference(_ first: Double, _ second: Double) -> Double {
+        let difference = normalize(first - second)
+        return difference > 180 ? difference - 360 : difference
     }
 }
 

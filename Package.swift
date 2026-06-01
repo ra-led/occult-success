@@ -17,6 +17,10 @@ let package = Package(
             name: "OccultSuccessApp",
             dependencies: [],
             path: "Sources/OccultSuccessApp"
+        ),
+        .testTarget(
+            name: "OccultSuccessAppTests",
+            dependencies: ["OccultSuccessApp"]
         )
     ]
 )
