@@ -3,30 +3,37 @@ import Foundation
 struct OpenRouterDreamService {
     enum DreamError: LocalizedError {
         case missingAPIKey
+        case invalidBaseURL
         case emptyResponse
 
         var errorDescription: String? {
             switch self {
             case .missingAPIKey: return "Добавьте OpenRouter API key в настройках."
+            case .invalidBaseURL: return "Проверьте OpenRouter Base URL в настройках."
             case .emptyResponse: return "OpenRouter вернул пустой ответ."
             }
         }
     }
 
-    func interpret(dream: String, apiKey: String) async throws -> String {
+    func interpret(dream: String, apiKey: String, baseURL: String, model: String) async throws -> String {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw DreamError.missingAPIKey
         }
 
+        let trimmedBaseURL = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/").union(.whitespacesAndNewlines))
+        guard let url = URL(string: "\(trimmedBaseURL)/chat/completions") else {
+            throw DreamError.invalidBaseURL
+        }
+
         let requestBody = ChatRequest(
-            model: "openai/gpt-4o-mini",
+            model: model.trimmingCharacters(in: .whitespacesAndNewlines),
             messages: [
                 ChatMessage(role: "system", content: "Ты русскоязычный эзотерический сонник. Пиши образно, но не давай медицинских, юридических или опасных советов."),
                 ChatMessage(role: "user", content: "Истолкуй сон практично и мистически. Сон: \(dream)")
             ]
         )
 
-        var request = URLRequest(url: URL(string: "https://openrouter.ai/api/v1/chat/completions")!)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

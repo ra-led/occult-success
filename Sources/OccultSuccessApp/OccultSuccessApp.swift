@@ -28,6 +28,12 @@ final class AppState: ObservableObject {
     @Published var openRouterAPIKey: String = UserDefaults.standard.string(forKey: "openRouterAPIKey") ?? "" {
         didSet { UserDefaults.standard.set(openRouterAPIKey, forKey: "openRouterAPIKey") }
     }
+    @Published var openRouterBaseURL: String = UserDefaults.standard.string(forKey: "openRouterBaseURL") ?? "https://openrouter.ai/api/v1" {
+        didSet { UserDefaults.standard.set(openRouterBaseURL, forKey: "openRouterBaseURL") }
+    }
+    @Published var openRouterModel: String = UserDefaults.standard.string(forKey: "openRouterModel") ?? "openai/gpt-5.4-mini" {
+        didSet { UserDefaults.standard.set(openRouterModel, forKey: "openRouterModel") }
+    }
 
     private let moonService = MoonCalendarService()
     private let natalCalculator = NatalChartCalculator()

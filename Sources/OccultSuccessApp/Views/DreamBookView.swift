@@ -70,7 +70,12 @@ struct DreamBookView: View {
         defer { isLoading = false }
 
         do {
-            let text = try await service.interpret(dream: dream, apiKey: appState.openRouterAPIKey)
+            let text = try await service.interpret(
+                dream: dream,
+                apiKey: appState.openRouterAPIKey,
+                baseURL: appState.openRouterBaseURL,
+                model: appState.openRouterModel
+            )
             appState.dreamInterpretations.insert(DreamInterpretation(dream: dream, text: text, createdAt: .now), at: 0)
             dream = ""
             errorMessage = nil

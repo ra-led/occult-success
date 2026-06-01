@@ -9,7 +9,13 @@ struct SettingsView: View {
             Form {
                 Section("OpenRouter") {
                     SecureField("API key", text: $appState.openRouterAPIKey)
-                    Text("Ключ используется только для сонника и хранится в UserDefaults для MVP.")
+                    TextField("Base URL", text: $appState.openRouterBaseURL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    TextField("Model", text: $appState.openRouterModel)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Text("Ключ используется только для сонника. Для продакшена его лучше хранить за backend-proxy, а не в iOS-клиенте.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
