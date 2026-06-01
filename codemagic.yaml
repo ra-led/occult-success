@@ -1,0 +1,28 @@
+workflows:
+  validate-ios-mvp:
+    name: Validate OccultSuccess iOS MVP
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      xcode: latest
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    scripts:
+      - name: Show tool versions
+        script: |
+          xcodebuild -version
+          swift --version
+      - name: Validate Swift source syntax
+        script: |
+          find Sources/OccultSuccessApp -name "*.swift" -print0 | xargs -0 -n1 swiftc -parse
+      - name: Describe package
+        script: |
+          swift package describe
+    artifacts:
+      - .build/**/*.log
