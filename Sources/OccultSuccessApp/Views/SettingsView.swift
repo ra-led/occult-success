@@ -9,12 +9,8 @@ struct SettingsView: View {
             Form {
                 Section("OpenRouter") {
                     SecureField("API key", text: $appState.openRouterAPIKey)
-                    TextField("Base URL", text: $appState.openRouterBaseURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Model", text: $appState.openRouterModel)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
+                    plainTextField("Base URL", text: $appState.openRouterBaseURL)
+                    plainTextField("Model", text: $appState.openRouterModel)
                     Text("Ключ используется только для сонника. Для продакшена его лучше хранить за backend-proxy, а не в iOS-клиенте.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -53,5 +49,15 @@ struct SettingsView: View {
             .background(MysticBackground())
             .navigationTitle("Настройки")
         }
+    }
+
+    private func plainTextField(_ title: String, text: Binding<String>) -> some View {
+        #if os(iOS)
+        TextField(title, text: text)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+        #else
+        TextField(title, text: text)
+        #endif
     }
 }

@@ -1,9 +1,19 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 @main
 struct OccultSuccessApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var subscriptionStore = SubscriptionStore()
+
+    init() {
+        #if os(iOS)
+        UINavigationBar.appearance().largeTitleTextAttributes = [.foregroundColor: UIColor.white]
+        UINavigationBar.appearance().titleTextAttributes = [.foregroundColor: UIColor.white]
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {

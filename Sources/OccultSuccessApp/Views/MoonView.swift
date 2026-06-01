@@ -9,6 +9,11 @@ struct MoonView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    Text("Сегодня")
+                        .font(.largeTitle.bold())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .foregroundStyle(.white)
+
                     if let moon = appState.moonDay {
                         GlassPanel {
                             VStack(alignment: .leading, spacing: 14) {
@@ -82,8 +87,9 @@ struct MoonView: View {
                 .padding()
             }
             .mysticScreen()
-            .navigationTitle("Сегодня")
+            #if os(iOS)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            #endif
         }
     }
 }
