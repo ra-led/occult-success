@@ -5,7 +5,10 @@ struct NatalChartView: View {
     @EnvironmentObject private var appState: AppState
     @State private var input = NatalChartInput()
     @State private var isSearching = false
+    @State private var isInterpreting = false
     @State private var searchError: String?
+    @State private var interpretationError: String?
+    @State private var llmInterpretation: String?
     @State private var mapPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 55.7558, longitude: 37.6173),
@@ -14,6 +17,7 @@ struct NatalChartView: View {
     )
 
     private let locationSearch = BirthLocationSearchService()
+    private let natalLLMService = OpenRouterNatalService()
 
     var body: some View {
         NavigationStack {
@@ -95,6 +99,34 @@ struct NatalChartView: View {
                         Text(chart.interpretation)
                     }
 
+                    Section("LLM-расшифровка") {
+                        Button {
+                            Task { await interpretNatalChart(chart) }
+                        } label: {
+                            if isInterpreting {
+                                ProgressView()
+                            } else {
+                                Label("Расшифровать через GPT-5.4", systemImage: "sparkles")
+                            }
+                        }
+                        .disabled(isInterpreting)
+
+                        Text("Модель: \(OpenRouterNatalService.natalModel)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let interpretationError {
+                            Text(interpretationError)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                        }
+
+                        if let llmInterpretation {
+                            Text(llmInterpretation)
+                                .foregroundStyle(.primary)
+                        }
+                    }
+
                     Section("Дома") {
                         ForEach(chart.houses) { house in
                             Text(house.formattedPosition)
@@ -144,6 +176,24 @@ struct NatalChartView: View {
         }
 
         appState.calculateNatalChart(input: input)
+        llmInterpretation = nil
+        interpretationError = nil
+    }
+
+    private func interpretNatalChart(_ chart: NatalChart) async {
+        isInterpreting = true
+        defer { isInterpreting = false }
+
+        do {
+            llmInterpretation = try await natalLLMService.interpret(
+                chart: chart,
+                apiKey: appState.openRouterAPIKey,
+                baseURL: appState.openRouterBaseURL
+            )
+            interpretationError = nil
+        } catch {
+            interpretationError = error.localizedDescription
+        }
     }
 }
 
