@@ -12,11 +12,26 @@ struct NatalChartInput: Equatable {
     var name = ""
     var birthDate = Date()
     var birthPlace = ""
+    var birthLocation: BirthLocation?
+}
+
+struct BirthLocation: Identifiable, Equatable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let latitude: Double
+    let longitude: Double
+    let timeZoneIdentifier: String?
+
+    var coordinateSummary: String {
+        String(format: "%.4f, %.4f", latitude, longitude)
+    }
 }
 
 struct NatalChart: Identifiable, Equatable {
     let id = UUID()
     let name: String
+    let location: BirthLocation?
     let sunSign: ZodiacSign
     let moonSign: ZodiacSign
     let ascendant: ZodiacSign

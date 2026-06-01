@@ -6,17 +6,46 @@ struct NatalChartCalculator {
         let components = calendar.dateComponents([.month, .day, .hour, .minute], from: input.birthDate)
         let sun = sunSign(month: components.month ?? 1, day: components.day ?? 1)
         let moon = shiftedSign(from: sun, by: ((components.day ?? 1) / 2) + (components.hour ?? 0) / 6)
-        let ascendant = shiftedSign(from: sun, by: max(0, (components.hour ?? 12) / 2))
+        let ascendant = shiftedSign(from: sun, by: ascendantOffset(input: input, components: components))
         let name = input.name.isEmpty ? "Натальная карта" : input.name
 
         return NatalChart(
             name: name,
+            location: input.birthLocation,
             sunSign: sun,
             moonSign: moon,
             ascendant: ascendant,
             houses: houses(ascendant: ascendant),
-            interpretation: "Солнце в знаке \(sun.rawValue) показывает базовую волю, Луна в знаке \(moon.rawValue) описывает эмоциональный ритм, а асцендент \(ascendant.rawValue) задаёт стиль первого впечатления. Для точной астрологии подключите эфемериды и координаты места рождения; этот MVP даёт мягкую прикладную интерпретацию."
+            interpretation: interpretation(sun: sun, moon: moon, ascendant: ascendant, location: input.birthLocation)
         )
+    }
+
+    private func ascendantOffset(input: NatalChartInput, components: DateComponents) -> Int {
+        let hour = Double(components.hour ?? 12)
+        let minute = Double(components.minute ?? 0)
+        let clockHours = hour + minute / 60
+
+        guard let location = input.birthLocation else {
+            return max(0, Int(clockHours / 2))
+        }
+
+        let timeZone = location.timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? .current
+        let secondsFromGMT = Double(timeZone.secondsFromGMT(for: input.birthDate))
+        let zoneLongitude = secondsFromGMT / 240
+        let solarCorrectionHours = (location.longitude - zoneLongitude) / 15
+        let localSolarHours = (clockHours + solarCorrectionHours + 24).truncatingRemainder(dividingBy: 24)
+        return max(0, Int(localSolarHours / 2))
+    }
+
+    private func interpretation(sun: ZodiacSign, moon: ZodiacSign, ascendant: ZodiacSign, location: BirthLocation?) -> String {
+        let locationText: String
+        if let location {
+            locationText = "Место рождения учтено по координатам \(location.coordinateSummary) и часовому поясу \(location.timeZoneIdentifier ?? "системному")."
+        } else {
+            locationText = "Место рождения не выбрано, поэтому асцендент рассчитан по времени без поправки на координаты."
+        }
+
+        return "Солнце в знаке \(sun.rawValue) показывает базовую волю, Луна в знаке \(moon.rawValue) описывает эмоциональный ритм, а асцендент \(ascendant.rawValue) задаёт стиль первого впечатления. \(locationText) Для точной астрологии нужны эфемериды и профессиональная домификация; этот MVP даёт мягкую прикладную интерпретацию."
     }
 
     private func sunSign(month: Int, day: Int) -> ZodiacSign {
