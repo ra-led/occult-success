@@ -1,0 +1,51 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var subscriptionStore: SubscriptionStore
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("OpenRouter") {
+                    SecureField("API key", text: $appState.openRouterAPIKey)
+                    Text("Ключ используется только для сонника и хранится в UserDefaults для MVP.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("Подписка") {
+                    if subscriptionStore.isTrialActive {
+                        LabeledContent("Бесплатный период", value: "\(subscriptionStore.trialDaysRemaining) дн.")
+                        LabeledContent("Доступен до", value: DateFormatter.shortMystic.string(from: subscriptionStore.trialEndsAt))
+                    } else {
+                        Text("Бесплатный период 3 недели завершён.")
+                    }
+
+                    Toggle("Dev-доступ к часу успеха", isOn: Binding(
+                        get: { subscriptionStore.devUnlocked },
+                        set: { subscriptionStore.devUnlocked = $0 }
+                    ))
+
+                    Button("Обновить StoreKit") {
+                        Task { await subscriptionStore.refresh() }
+                    }
+
+                    if let product = subscriptionStore.products.first {
+                        Text("Продукт: \(product.displayName), \(product.displayPrice)")
+                    } else {
+                        Text("Product id: occultsuccess.success_hour.monthly")
+                    }
+
+                    if let error = subscriptionStore.errorMessage {
+                        Text(error)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(MysticBackground())
+            .navigationTitle("Настройки")
+        }
+    }
+}
