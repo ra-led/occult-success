@@ -14,7 +14,7 @@ struct SuccessHourScheduler {
         let endsAt = startsAt.addingTimeInterval(60 * 60)
         let content = UNMutableNotificationContent()
         content.title = "Открывается окно успеха"
-        content.body = "В течение часа лучше действовать: сделать звонок, отправить заявку или начать то, что откладывали."
+        content.body = "Это лучший момент дня для действия: сделайте звонок, отправьте заявку или начните то, что откладывали."
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: offset, repeats: false)

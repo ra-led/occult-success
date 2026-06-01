@@ -37,7 +37,7 @@ struct MoonView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Час успеха", systemImage: "bell.badge")
                                 .font(.title3.bold())
-                            Text("Пуш приходит в случайный момент дня, когда лучше сделать действие, которое вы давно откладывали.")
+                            Text("Пуш приходит в лучший момент дня, когда пора действовать: сделать звонок, отправить заявку или начать то, что откладывали.")
                                 .foregroundStyle(.white.opacity(0.76))
                             if subscriptionStore.isTrialActive {
                                 Label("Бесплатный период: ещё \(subscriptionStore.trialDaysRemaining) дн.", systemImage: "gift")
