@@ -10,35 +10,26 @@ struct DreamBookView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
+                    MysticPageTitle(
+                        eyebrow: "Сонник",
+                        title: "Запись сна",
+                        subtitle: "Опишите образ, место и чувство. Толкование соберет символы в цельную историю."
+                    )
+
                     GlassPanel {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Опишите сон")
-                                .font(.title3.bold())
-                            TextEditor(text: $dream)
-                                .frame(minHeight: 140)
-                                .scrollContentBackground(.hidden)
-                                .padding(8)
-                                .background(.black.opacity(0.22), in: RoundedRectangle(cornerRadius: 12))
+                            MysticTextBox(title: "Сон", text: $dream, minHeight: 160)
 
-                            Button {
+                            MysticButton(title: "Истолковать через LLM", systemImage: "sparkle.magnifyingglass", isLoading: isLoading) {
                                 Task { await interpret() }
-                            } label: {
-                                if isLoading {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity)
-                                } else {
-                                    Label("Истолковать через LLM", systemImage: "sparkle.magnifyingglass")
-                                        .frame(maxWidth: .infinity)
-                                }
                             }
-                            .buttonStyle(.borderedProminent)
                             .disabled(dream.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
 
                             if let errorMessage {
                                 Text(errorMessage)
                                     .font(.footnote)
-                                    .foregroundStyle(.red.opacity(0.9))
+                                    .foregroundStyle(MysticTheme.danger)
                             }
                         }
                     }
@@ -47,21 +38,23 @@ struct DreamBookView: View {
                         GlassPanel {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(item.dream)
-                                    .font(.headline)
+                                    .font(.headline.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold)
                                     .lineLimit(2)
                                 Text(item.text)
-                                    .foregroundStyle(.white.opacity(0.82))
+                                    .foregroundStyle(MysticTheme.text.opacity(0.86))
                                 Text(DateFormatter.shortMystic.string(from: item.createdAt))
                                     .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.55))
+                                    .foregroundStyle(MysticTheme.muted)
                             }
                         }
                     }
                 }
                 .padding()
+                .padding(.bottom, 110)
             }
             .mysticScreen()
-            .navigationTitle("Сонник")
+            .navigationTitle("")
         }
     }
 

@@ -18,7 +18,11 @@ struct ContentView: View {
             SettingsView()
                 .tabItem { Label("Настройки", systemImage: "gearshape") }
         }
-        .tint(.purple)
+        .tint(MysticTheme.gold)
+        #if os(iOS)
+        .toolbarBackground(.black.opacity(0.82), for: .tabBar)
+        .toolbarColorScheme(.dark, for: .tabBar)
+        #endif
     }
 }
 

@@ -21,133 +21,153 @@ struct NatalChartView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Данные рождения") {
-                    TextField("Имя", text: $input.name)
-                    DatePicker("Дата и время", selection: $input.birthDate, displayedComponents: [.date, .hourAndMinute])
-                    TextField("Город рождения", text: $input.birthPlace)
-                    Picker("Система домов", selection: $input.houseSystem) {
-                        ForEach(HouseSystem.allCases) { system in
-                            Text(system.rawValue).tag(system)
-                        }
-                    }
-                    Button {
-                        Task { await searchBirthPlace() }
-                    } label: {
-                        if isSearching {
-                            ProgressView()
-                        } else {
-                            Label("Найти город на карте", systemImage: "location.magnifyingglass")
-                        }
-                    }
-                    .disabled(isSearching)
+            ScrollView {
+                VStack(spacing: 18) {
+                    MysticPageTitle(
+                        eyebrow: "Астрология",
+                        title: "Натальная карта",
+                        subtitle: "Точный расчет по месту, времени, Placidus-домам и аспектам."
+                    )
 
-                    if let searchError {
-                        Text(searchError)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
+                    GlassPanel {
+                        VStack(alignment: .leading, spacing: 14) {
+                            MysticField(title: "Имя", text: $input.name)
 
-                    if let location = input.birthLocation {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(location.title)
-                                .font(.headline)
-                            if !location.subtitle.isEmpty {
-                                Text(location.subtitle)
+                            VStack(alignment: .leading, spacing: 7) {
+                                Text("Дата и время")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold.opacity(0.9))
+                                DatePicker("", selection: $input.birthDate, displayedComponents: [.date, .hourAndMinute])
+                                    .datePickerStyle(.compact)
+                                    .labelsHidden()
+                                    .tint(MysticTheme.gold)
+                                    .foregroundStyle(MysticTheme.text)
+                                    .padding(.horizontal, 12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(height: 46)
+                                    .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .stroke(.white.opacity(0.13), lineWidth: 1)
+                                    }
+                            }
+
+                            MysticField(title: "Город рождения", text: $input.birthPlace)
+                            HouseSystemSelector(selection: $input.houseSystem)
+
+                            MysticButton(title: "Найти город на карте", systemImage: "location.magnifyingglass", isLoading: isSearching) {
+                                Task { await searchBirthPlace() }
+                            }
+                            .disabled(isSearching)
+
+                            if let searchError {
+                                Text(searchError)
                                     .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(MysticTheme.danger)
                             }
-                            Text(location.coordinateSummary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
 
-                            Map(position: $mapPosition) {
-                                Marker(
-                                    location.title,
-                                    coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
-                                )
-                                .tint(.purple)
+                            if let location = input.birthLocation {
+                                LocationPreview(location: location, mapPosition: $mapPosition)
                             }
-                            .frame(height: 180)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                            MysticButton(title: "Рассчитать натальную карту", systemImage: "scope") {
+                                Task { await calculateChart() }
+                            }
                         }
                     }
+                    .onChange(of: input.birthPlace) { _, _ in
+                        input.birthLocation = nil
+                    }
 
-                    Button("Рассчитать натальную карту") {
-                        Task { await calculateChart() }
+                    if let chart = appState.natalChart {
+                        GlassPanel {
+                            NatalChartWheelView(chart: chart)
+                                .frame(height: 360)
+                        }
+
+                        GlassPanel {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(chart.name)
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold)
+                                if let location = chart.location {
+                                    MysticInfoRow(title: "Место", value: location.title)
+                                }
+                                MysticInfoRow(title: "Дома", value: chart.houseSystem.rawValue)
+                                MysticDivider()
+                                ForEach(chart.placements) { placement in
+                                    MysticInfoRow(title: placement.body.rawValue, value: placement.formattedPosition)
+                                }
+                                Text(chart.interpretation)
+                                    .font(.callout)
+                                    .foregroundStyle(MysticTheme.muted)
+                                    .padding(.top, 4)
+                            }
+                        }
+
+                        GlassPanel {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("LLM-расшифровка")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold)
+                                MysticButton(title: "Расшифровать через GPT-5.4", systemImage: "sparkles", isLoading: isInterpreting) {
+                                    Task { await interpretNatalChart(chart) }
+                                }
+                                .disabled(isInterpreting)
+
+                                Text("Модель: \(OpenRouterNatalService.natalModel)")
+                                    .font(.caption)
+                                    .foregroundStyle(MysticTheme.muted)
+
+                                if let interpretationError {
+                                    Text(interpretationError)
+                                        .font(.footnote)
+                                        .foregroundStyle(MysticTheme.danger)
+                                }
+
+                                if let llmInterpretation {
+                                    MysticDivider()
+                                    Text(llmInterpretation)
+                                        .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                }
+                            }
+                        }
+
+                        GlassPanel {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Дома")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold)
+                                ForEach(chart.houses) { house in
+                                    MysticInfoRow(title: "\(house.number)", value: house.formattedPosition)
+                                }
+                            }
+                        }
+
+                        GlassPanel {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Аспекты")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(MysticTheme.gold)
+                                if chart.aspects.isEmpty {
+                                    Text("Мажорных аспектов с орбом до 6° нет.")
+                                        .foregroundStyle(MysticTheme.muted)
+                                } else {
+                                    ForEach(chart.aspects.prefix(12)) { aspect in
+                                        Text(aspect.title)
+                                            .font(.callout)
+                                            .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                .onChange(of: input.birthPlace) { _, _ in
-                    input.birthLocation = nil
-                }
-
-                if let chart = appState.natalChart {
-                    Section {
-                        NatalChartWheelView(chart: chart)
-                            .frame(height: 360)
-                            .listRowInsets(EdgeInsets(top: 12, leading: 8, bottom: 12, trailing: 8))
-                    }
-
-                    Section(chart.name) {
-                        if let location = chart.location {
-                            LabeledContent("Место", value: location.title)
-                        }
-                        LabeledContent("Дома", value: chart.houseSystem.rawValue)
-                        ForEach(chart.placements) { placement in
-                            LabeledContent(placement.body.rawValue, value: placement.formattedPosition)
-                        }
-                        Text(chart.interpretation)
-                    }
-
-                    Section("LLM-расшифровка") {
-                        Button {
-                            Task { await interpretNatalChart(chart) }
-                        } label: {
-                            if isInterpreting {
-                                ProgressView()
-                            } else {
-                                Label("Расшифровать через GPT-5.4", systemImage: "sparkles")
-                            }
-                        }
-                        .disabled(isInterpreting)
-
-                        Text("Модель: \(OpenRouterNatalService.natalModel)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                        if let interpretationError {
-                            Text(interpretationError)
-                                .font(.footnote)
-                                .foregroundStyle(.red)
-                        }
-
-                        if let llmInterpretation {
-                            Text(llmInterpretation)
-                                .foregroundStyle(.primary)
-                        }
-                    }
-
-                    Section("Дома") {
-                        ForEach(chart.houses) { house in
-                            Text(house.formattedPosition)
-                        }
-                    }
-
-                    Section("Аспекты") {
-                        if chart.aspects.isEmpty {
-                            Text("Мажорных аспектов с орбом до 6° нет.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(chart.aspects.prefix(12)) { aspect in
-                                Text(aspect.title)
-                            }
-                        }
-                    }
-                }
+                .padding()
+                .padding(.bottom, 110)
             }
-            .scrollContentBackground(.hidden)
-            .background(MysticBackground())
-            .navigationTitle("Натальная карта")
+            .mysticScreen()
+            .navigationTitle("")
         }
     }
 
@@ -194,6 +214,94 @@ struct NatalChartView: View {
         } catch {
             interpretationError = error.localizedDescription
         }
+    }
+}
+
+private struct HouseSystemSelector: View {
+    @Binding var selection: HouseSystem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Система домов")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MysticTheme.gold.opacity(0.9))
+            HStack(spacing: 8) {
+                ForEach(HouseSystem.allCases) { system in
+                    Button {
+                        selection = system
+                    } label: {
+                        Text(system.rawValue)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(selection == system ? .black : MysticTheme.text)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 34)
+                            .background(selection == system ? MysticTheme.gold : MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .stroke(selection == system ? MysticTheme.gold : .white.opacity(0.14), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+private struct LocationPreview: View {
+    let location: BirthLocation
+    @Binding var mapPosition: MapCameraPosition
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(location.title)
+                .font(.headline)
+                .foregroundStyle(MysticTheme.text)
+            if !location.subtitle.isEmpty {
+                Text(location.subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(MysticTheme.muted)
+            }
+            Text(location.coordinateSummary)
+                .font(.caption)
+                .foregroundStyle(MysticTheme.gold)
+
+            Map(position: $mapPosition) {
+                Marker(
+                    location.title,
+                    coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
+                )
+                .tint(.yellow)
+            }
+            .frame(height: 180)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(MysticTheme.gold.opacity(0.32), lineWidth: 1)
+            }
+        }
+        .padding(.top, 4)
+    }
+}
+
+private struct MysticInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(.callout)
+                .foregroundStyle(MysticTheme.muted)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(MysticTheme.text)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.vertical, 2)
     }
 }
 

@@ -5,19 +5,25 @@ struct MysticBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.02, green: 0.03, blue: 0.09),
-                    Color(red: 0.08, green: 0.05, blue: 0.18),
-                    Color(red: 0.02, green: 0.09, blue: 0.16)
+                    MysticTheme.void,
+                    MysticTheme.ink,
+                    Color(red: 0.01, green: 0.015, blue: 0.018)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
             StarField()
-                .opacity(0.92)
+                .opacity(0.82)
 
             OrbitalMap()
-                .opacity(0.7)
+                .opacity(0.42)
+
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.72)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
         .ignoresSafeArea()
     }
@@ -51,15 +57,15 @@ private struct StarField: View {
                         .position(x: proxy.size.width * star.x, y: proxy.size.height * star.y)
                 }
 
-                Image(systemName: "sparkle")
-                    .font(.system(size: 13, weight: .light))
-                    .foregroundStyle(.cyan.opacity(0.55))
-                    .position(x: proxy.size.width * 0.86, y: proxy.size.height * 0.16)
-
-                Image(systemName: "sparkle")
-                    .font(.system(size: 9, weight: .light))
-                    .foregroundStyle(.purple.opacity(0.62))
-                    .position(x: proxy.size.width * 0.2, y: proxy.size.height * 0.68)
+                ForEach(0..<22, id: \.self) { index in
+                    Circle()
+                        .fill(.white.opacity(index.isMultiple(of: 3) ? 0.62 : 0.28))
+                        .frame(width: index.isMultiple(of: 4) ? 1.8 : 0.9, height: index.isMultiple(of: 4) ? 1.8 : 0.9)
+                        .position(
+                            x: proxy.size.width * CGFloat((index * 37 % 100)) / 100,
+                            y: proxy.size.height * CGFloat((index * 61 % 100)) / 100
+                        )
+                }
             }
         }
     }
@@ -79,12 +85,6 @@ private struct OrbitalMap: View {
                         .rotationEffect(.degrees(-24 + Double(index) * 8))
                         .position(x: proxy.size.width * 0.68, y: proxy.size.height * 0.22)
                 }
-
-                Planet(color: .cyan, size: 56)
-                    .position(x: proxy.size.width * 0.87, y: proxy.size.height * 0.2)
-
-                Planet(color: .purple, size: 34)
-                    .position(x: proxy.size.width * 0.14, y: proxy.size.height * 0.78)
 
                 Comet()
                     .frame(width: 130, height: 42)
@@ -151,23 +151,167 @@ struct GlassPanel<Content: View>: View {
 
     var body: some View {
         content
-            .padding(16)
+            .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.white.opacity(0.105), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(MysticTheme.panel.opacity(0.88), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(.ultraThinMaterial.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(.white.opacity(0.16))
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [MysticTheme.gold.opacity(0.7), .white.opacity(0.12), MysticTheme.emerald.opacity(0.32)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             }
-            .shadow(color: .cyan.opacity(0.08), radius: 18, x: 0, y: 8)
+            .shadow(color: .black.opacity(0.42), radius: 20, x: 0, y: 10)
     }
 }
 
 extension View {
     func mysticScreen() -> some View {
         self
-            .foregroundStyle(.white)
+            .foregroundStyle(MysticTheme.text)
             .scrollContentBackground(.hidden)
             .background(MysticBackground())
+    }
+}
+
+enum MysticTheme {
+    static let void = Color(red: 0.006, green: 0.008, blue: 0.012)
+    static let ink = Color(red: 0.018, green: 0.026, blue: 0.038)
+    static let panel = Color(red: 0.035, green: 0.038, blue: 0.044)
+    static let field = Color(red: 0.015, green: 0.018, blue: 0.022)
+    static let gold = Color(red: 0.91, green: 0.68, blue: 0.34)
+    static let emerald = Color(red: 0.14, green: 0.72, blue: 0.47)
+    static let text = Color(red: 0.96, green: 0.94, blue: 0.89)
+    static let muted = Color(red: 0.66, green: 0.68, blue: 0.70)
+    static let danger = Color(red: 1.0, green: 0.42, blue: 0.42)
+}
+
+struct MysticPageTitle: View {
+    let eyebrow: String
+    let title: String
+    let subtitle: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(eyebrow.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MysticTheme.gold)
+            Text(title)
+                .font(.system(size: 34, weight: .semibold, design: .serif))
+                .foregroundStyle(MysticTheme.text)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(MysticTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct MysticField: View {
+    let title: String
+    @Binding var text: String
+    var isSecure = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MysticTheme.gold.opacity(0.9))
+            Group {
+                if isSecure {
+                    SecureField("", text: $text)
+                } else {
+                    TextField("", text: $text)
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        #endif
+                }
+            }
+            .foregroundStyle(MysticTheme.text)
+            .font(.body)
+            .padding(.horizontal, 12)
+            .frame(height: 46)
+            .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(.white.opacity(0.13), lineWidth: 1)
+            }
+        }
+    }
+}
+
+struct MysticTextBox: View {
+    let title: String
+    @Binding var text: String
+    var minHeight: CGFloat = 140
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(MysticTheme.gold.opacity(0.9))
+            TextEditor(text: $text)
+                .foregroundStyle(MysticTheme.text)
+                .scrollContentBackground(.hidden)
+                .padding(10)
+                .frame(minHeight: minHeight)
+                .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .stroke(.white.opacity(0.13), lineWidth: 1)
+                }
+        }
+    }
+}
+
+struct MysticButton: View {
+    let title: String
+    let systemImage: String
+    var isLoading = false
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                if isLoading {
+                    ProgressView()
+                        .tint(.black)
+                } else {
+                    Image(systemName: systemImage)
+                }
+                Text(title)
+                    .font(.callout.weight(.semibold))
+            }
+            .foregroundStyle(.black)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(
+                LinearGradient(
+                    colors: [MysticTheme.gold, Color(red: 0.98, green: 0.84, blue: 0.52)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct MysticDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(LinearGradient(colors: [.clear, MysticTheme.gold.opacity(0.5), .clear], startPoint: .leading, endPoint: .trailing))
+            .frame(height: 1)
     }
 }
 
