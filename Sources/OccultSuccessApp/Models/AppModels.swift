@@ -5,6 +5,7 @@ struct MoonDay: Identifiable, Equatable {
     let number: Int
     let phaseName: String
     let illumination: Double
+    let cycleFraction: Double
     let advice: String
 }
 

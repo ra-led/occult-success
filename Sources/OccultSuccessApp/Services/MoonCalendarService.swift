@@ -7,13 +7,15 @@ struct MoonCalendarService {
         let days = date.timeIntervalSince(referenceNewMoon) / 86_400
         let age = days.truncatingRemainder(dividingBy: synodicMonth)
         let normalizedAge = age >= 0 ? age : age + synodicMonth
+        let cycleFraction = normalizedAge / synodicMonth
         let number = min(30, max(1, Int(floor(normalizedAge)) + 1))
-        let illumination = 0.5 * (1 - cos(2 * .pi * normalizedAge / synodicMonth))
+        let illumination = 0.5 * (1 - cos(2 * .pi * cycleFraction))
 
         return MoonDay(
             number: number,
             phaseName: phaseName(age: normalizedAge, month: synodicMonth),
             illumination: illumination,
+            cycleFraction: cycleFraction,
             advice: advice(for: number)
         )
     }

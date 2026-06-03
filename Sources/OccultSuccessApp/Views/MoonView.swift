@@ -32,7 +32,7 @@ struct MoonView: View {
                                             .foregroundStyle(MysticTheme.gold)
                                     }
                                     Spacer()
-                                    MoonOrb(illumination: moon.illumination)
+                                    MoonOrb(illumination: moon.illumination, cycleFraction: moon.cycleFraction)
                                         .frame(width: 96, height: 96)
                                 }
 
@@ -111,27 +111,78 @@ struct MoonView: View {
 
 private struct MoonOrb: View {
     let illumination: Double
+    let cycleFraction: Double
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(.black)
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            .white,
+                            MysticTheme.bone,
+                            MysticTheme.gold.opacity(0.42)
+                        ],
+                        center: .topLeading,
+                        startRadius: 2,
+                        endRadius: 92
+                    )
+                )
+                .overlay {
+                    MoonPhaseShadow(cycleFraction: cycleFraction, illumination: illumination)
+                        .fill(.black.opacity(0.82))
+                        .blur(radius: 0.5)
+                        .clipShape(Circle())
+                }
                 .overlay {
                     Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [.white.opacity(0.95), MysticTheme.bone.opacity(0.38), .clear],
-                                center: .topLeading,
-                                startRadius: 2,
-                                endRadius: 82
-                            )
-                        )
-                        .opacity(max(0.18, illumination))
+                        .stroke(MysticTheme.gold.opacity(0.5), lineWidth: 1)
                 }
-                .overlay(Circle().stroke(MysticTheme.gold.opacity(0.45), lineWidth: 1))
+                .shadow(color: MysticTheme.bone.opacity(0.28), radius: 18)
             Circle()
                 .stroke(.white.opacity(0.08), lineWidth: 12)
                 .blur(radius: 7)
         }
+    }
+}
+
+private struct MoonPhaseShadow: Shape {
+    let cycleFraction: Double
+    let illumination: Double
+
+    func path(in rect: CGRect) -> Path {
+        let safeIllumination = min(1, max(0, illumination))
+        guard safeIllumination < 0.985 else { return Path() }
+        guard safeIllumination > 0.02 else {
+            var path = Path()
+            path.addEllipse(in: rect)
+            return path
+        }
+
+        let diameter = min(rect.width, rect.height)
+        let shadowWidth = max(diameter * (1 - safeIllumination), diameter * 0.055)
+        let cycle = min(1, max(0, cycleFraction))
+        let isWaxing = cycle < 0.5
+        let shadowRect: CGRect
+
+        if isWaxing {
+            shadowRect = CGRect(
+                x: rect.minX - shadowWidth,
+                y: rect.minY - diameter * 0.08,
+                width: shadowWidth * 2,
+                height: rect.height + diameter * 0.16
+            )
+        } else {
+            shadowRect = CGRect(
+                x: rect.maxX - shadowWidth,
+                y: rect.minY - diameter * 0.08,
+                width: shadowWidth * 2,
+                height: rect.height + diameter * 0.16
+            )
+        }
+
+        var path = Path()
+        path.addEllipse(in: shadowRect)
+        return path
     }
 }
