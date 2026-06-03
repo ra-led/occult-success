@@ -17,7 +17,7 @@ struct OpenRouterNatalService {
         }
     }
 
-    func interpret(chart: NatalChart, apiKey: String, baseURL: String) async throws -> String {
+    func interpret(chart: NatalChart, apiKey: String, baseURL: String) async throws -> NatalInterpretationReport {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw NatalError.missingAPIKey
         }
@@ -34,6 +34,7 @@ struct OpenRouterNatalService {
                     role: "system",
                     content: """
                     Ты русскоязычный астрологический интерпретатор. Пиши уверенно, живо и понятно, но не утверждай фатальные предсказания как факт. Не давай медицинских, юридических, финансовых или опасных советов. Работай только по данным карты, которые дал пользователь.
+                    Верни только валидный JSON без markdown, без вступлений, без заключительных предложений, без фраз вроде "Ниже описание", "Если хотите", "Могу подробнее".
                     """
                 ),
                 NatalChatMessage(
@@ -41,20 +42,31 @@ struct OpenRouterNatalService {
                     content: """
                     Сделай подробную расшифровку натальной карты на русском.
 
-                    Формат:
-                    1. Короткий портрет личности.
-                    2. Солнце, Луна, ASC: ядро характера.
-                    3. Личные планеты: мышление, любовь, действие.
-                    4. Социальные и дальние планеты: амбиции и глубинные темы.
-                    5. Дома и акценты.
-                    6. Главные аспекты.
-                    7. Практические рекомендации на 5 пунктов.
+                    Строгий формат ответа:
+                    {
+                      "sections": [
+                        {
+                          "title": "Короткий портрет",
+                          "paragraphs": ["1-2 абзаца обычного текста без markdown"],
+                          "bullets": []
+                        }
+                      ]
+                    }
+
+                    Правила:
+                    - Ровно 7 секций в таком порядке: "Короткий портрет", "Солнце, Луна, ASC", "Личные планеты", "Социальные и дальние планеты", "Дома и акценты", "Главные аспекты", "Практические рекомендации".
+                    - В paragraphs только чистый текст. Не используй markdown, HTML, нумерацию, заголовки внутри текста, эмодзи.
+                    - В bullets только короткие пункты без тире в начале.
+                    - Секция "Практические рекомендации" должна содержать 5 bullets и пустой paragraphs.
+                    - Остальные секции: 1-3 paragraphs, bullets можно оставить пустым.
+                    - Не добавляй комментарии до или после JSON.
 
                     Карта:
                     \(chartPrompt(chart))
                     """
                 )
-            ]
+            ],
+            responseFormat: NatalResponseFormat(type: "json_object")
         )
 
         var request = URLRequest(url: url)
@@ -69,7 +81,20 @@ struct OpenRouterNatalService {
         guard let content = response.choices.first?.message.content, !content.isEmpty else {
             throw NatalError.emptyResponse
         }
-        return content
+        let json = sanitizedJSON(content)
+        return try JSONDecoder().decode(NatalInterpretationReport.self, from: Data(json.utf8))
+    }
+
+    private func sanitizedJSON(_ content: String) -> String {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("```") {
+            return trimmed
+                .replacingOccurrences(of: "```json", with: "")
+                .replacingOccurrences(of: "```JSON", with: "")
+                .replacingOccurrences(of: "```", with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return trimmed
     }
 
     private func chartPrompt(_ chart: NatalChart) -> String {
@@ -104,11 +129,34 @@ struct OpenRouterNatalService {
 private struct NatalChatRequest: Encodable {
     let model: String
     let messages: [NatalChatMessage]
+    let responseFormat: NatalResponseFormat
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case responseFormat = "response_format"
+    }
+}
+
+private struct NatalResponseFormat: Encodable {
+    let type: String
 }
 
 private struct NatalChatMessage: Codable {
     let role: String
     let content: String
+}
+
+struct NatalInterpretationReport: Decodable, Equatable {
+    let sections: [NatalInterpretationSection]
+}
+
+struct NatalInterpretationSection: Decodable, Equatable, Identifiable {
+    let title: String
+    let paragraphs: [String]
+    let bullets: [String]
+
+    var id: String { title }
 }
 
 private struct NatalChatResponse: Decodable {

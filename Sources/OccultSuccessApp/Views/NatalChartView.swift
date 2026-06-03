@@ -1,4 +1,3 @@
-import MapKit
 import SwiftUI
 
 struct NatalChartView: View {
@@ -8,13 +7,9 @@ struct NatalChartView: View {
     @State private var isInterpreting = false
     @State private var searchError: String?
     @State private var interpretationError: String?
-    @State private var llmInterpretation: String?
-    @State private var mapPosition: MapCameraPosition = .region(
-        MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 55.7558, longitude: 37.6173),
-            span: MKCoordinateSpan(latitudeDelta: 20, longitudeDelta: 20)
-        )
-    )
+    @State private var llmInterpretation: NatalInterpretationReport?
+    @State private var locationSuggestions: [BirthLocation] = []
+    @State private var selectedLocationTitle: String?
 
     private let locationSearch = BirthLocationSearchService()
     private let natalLLMService = OpenRouterNatalService()
@@ -42,6 +37,7 @@ struct NatalChartView: View {
                                     .labelsHidden()
                                     .tint(MysticTheme.gold)
                                     .foregroundStyle(MysticTheme.text)
+                                    .environment(\.colorScheme, .dark)
                                     .padding(.horizontal, 12)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .frame(height: 46)
@@ -53,12 +49,21 @@ struct NatalChartView: View {
                             }
 
                             MysticField(title: "Город рождения", text: $input.birthPlace)
-                            HouseSystemSelector(selection: $input.houseSystem)
-
-                            MysticButton(title: "Найти город на карте", systemImage: "location.magnifyingglass", isLoading: isSearching) {
-                                Task { await searchBirthPlace() }
+                            if isSearching {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                        .tint(MysticTheme.bone)
+                                    Text("Ищу город")
+                                        .font(.caption)
+                                        .foregroundStyle(MysticTheme.muted)
+                                }
                             }
-                            .disabled(isSearching)
+                            if !locationSuggestions.isEmpty {
+                                LocationSuggestionsView(suggestions: locationSuggestions) { location in
+                                    selectLocation(location)
+                                }
+                            }
+                            HouseSystemSelector(selection: $input.houseSystem)
 
                             if let searchError {
                                 Text(searchError)
@@ -67,7 +72,7 @@ struct NatalChartView: View {
                             }
 
                             if let location = input.birthLocation {
-                                LocationPreview(location: location, mapPosition: $mapPosition)
+                                LocationPreview(location: location)
                             }
 
                             MysticButton(title: "Рассчитать натальную карту", systemImage: "scope") {
@@ -76,7 +81,10 @@ struct NatalChartView: View {
                         }
                     }
                     .onChange(of: input.birthPlace) { _, _ in
+                        guard input.birthPlace != selectedLocationTitle else { return }
                         input.birthLocation = nil
+                        selectedLocationTitle = nil
+                        Task { await updateLocationSuggestions() }
                     }
 
                     if let chart = appState.natalChart {
@@ -129,8 +137,7 @@ struct NatalChartView: View {
 
                                 if let llmInterpretation {
                                     MysticDivider()
-                                    Text(llmInterpretation)
-                                        .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                    NatalInterpretationReportView(report: llmInterpretation)
                                 }
                             }
                         }
@@ -181,17 +188,41 @@ struct NatalChartView: View {
 
         do {
             let location = try await locationSearch.searchCity(input.birthPlace)
-            input.birthLocation = location
-            searchError = nil
-            mapPosition = .region(
-                MKCoordinateRegion(
-                    center: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude),
-                    span: MKCoordinateSpan(latitudeDelta: 1.6, longitudeDelta: 1.6)
-                )
-            )
+            selectLocation(location)
         } catch {
             searchError = error.localizedDescription
         }
+    }
+
+    private func updateLocationSuggestions() async {
+        let query = input.birthPlace.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            locationSuggestions = []
+            searchError = nil
+            return
+        }
+
+        isSearching = true
+        defer { isSearching = false }
+
+        do {
+            try await Task.sleep(nanoseconds: 350_000_000)
+            guard query == input.birthPlace.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+            locationSuggestions = try await locationSearch.searchCities(query)
+            searchError = nil
+        } catch is CancellationError {
+        } catch {
+            locationSuggestions = []
+            searchError = error.localizedDescription
+        }
+    }
+
+    private func selectLocation(_ location: BirthLocation) {
+        selectedLocationTitle = location.title
+        input.birthPlace = location.title
+        input.birthLocation = location
+        locationSuggestions = []
+        searchError = nil
     }
 
     private func calculateChart() async {
@@ -258,7 +289,6 @@ private struct HouseSystemSelector: View {
 
 private struct LocationPreview: View {
     let location: BirthLocation
-    @Binding var mapPosition: MapCameraPosition
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -273,22 +303,54 @@ private struct LocationPreview: View {
             Text(location.coordinateSummary)
                 .font(.caption)
                 .foregroundStyle(MysticTheme.gold)
-
-            Map(position: $mapPosition) {
-                Marker(
-                    location.title,
-                    coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
-                )
-                .tint(MysticTheme.gold)
-            }
-            .frame(height: 180)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(MysticTheme.gold.opacity(0.32), lineWidth: 1)
-            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(MysticTheme.gold.opacity(0.24), lineWidth: 1)
         }
         .padding(.top, 4)
+    }
+}
+
+private struct LocationSuggestionsView: View {
+    let suggestions: [BirthLocation]
+    let onSelect: (BirthLocation) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(suggestions) { location in
+                Button {
+                    onSelect(location)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(location.title)
+                            .font(.system(.callout, design: .serif).weight(.semibold))
+                            .foregroundStyle(MysticTheme.text)
+                        if !location.subtitle.isEmpty {
+                            Text(location.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(MysticTheme.muted)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+
+                if location.id != suggestions.last?.id {
+                    MysticDivider()
+                }
+            }
+        }
+        .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        }
     }
 }
 
@@ -310,6 +372,41 @@ private struct MysticInfoRow: View {
                 .multilineTextAlignment(.trailing)
         }
         .padding(.vertical, 2)
+    }
+}
+
+private struct NatalInterpretationReportView: View {
+    let report: NatalInterpretationReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            ForEach(report.sections) { section in
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(section.title)
+                        .font(.system(.headline, design: .serif).weight(.semibold))
+                        .foregroundStyle(MysticTheme.gold)
+                    ForEach(section.paragraphs, id: \.self) { paragraph in
+                        Text(paragraph)
+                            .font(.callout)
+                            .foregroundStyle(MysticTheme.text.opacity(0.9))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !section.bullets.isEmpty {
+                        VStack(alignment: .leading, spacing: 7) {
+                            ForEach(section.bullets, id: \.self) { bullet in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Text("•")
+                                        .foregroundStyle(MysticTheme.gold)
+                                    Text(bullet)
+                                        .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                }
+                                .font(.callout)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
