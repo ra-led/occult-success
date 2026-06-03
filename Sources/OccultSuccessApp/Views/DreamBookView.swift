@@ -39,6 +39,7 @@ struct DreamBookView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(item.dream)
                                     .font(.headline.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                     .lineLimit(2)
                                 Text(item.text)

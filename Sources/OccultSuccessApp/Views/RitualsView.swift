@@ -17,6 +17,7 @@ struct RitualsView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Label("Снятие порчи", systemImage: "shield.lefthalf.filled")
                                 .font(.title3.weight(.semibold))
+                                .fontDesign(.serif)
                                 .foregroundStyle(MysticTheme.gold)
                             Text("Мягкий бытовой сценарий: вода, порядок, границы и фиксация намерения. Без запугивания и вредных действий.")
                                 .foregroundStyle(MysticTheme.muted)
@@ -32,6 +33,7 @@ struct RitualsView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Label(ritual.title, systemImage: ritual.accent)
                                     .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                 Text(ritual.subtitle)
                                     .foregroundStyle(MysticTheme.muted)
@@ -45,12 +47,12 @@ struct RitualsView: View {
                                         HStack(spacing: 12) {
                                             ZStack {
                                                 Circle()
-                                                    .stroke(step.isDone ? MysticTheme.emerald : MysticTheme.muted.opacity(0.45), lineWidth: 1)
+                                                    .stroke(step.isDone ? MysticTheme.bone : MysticTheme.muted.opacity(0.45), lineWidth: 1)
                                                     .frame(width: 24, height: 24)
                                                 if step.isDone {
                                                     Image(systemName: "checkmark")
                                                         .font(.caption.weight(.bold))
-                                                        .foregroundStyle(MysticTheme.emerald)
+                                                        .foregroundStyle(MysticTheme.bone)
                                                 }
                                             }
                                             Text(step.title)
@@ -85,7 +87,7 @@ private struct RitualProgress: View {
                     Capsule()
                         .fill(.white.opacity(0.08))
                     Capsule()
-                        .fill(MysticTheme.emerald)
+                        .fill(MysticTheme.bone)
                         .frame(width: proxy.size.width * value)
                 }
             }
@@ -93,6 +95,7 @@ private struct RitualProgress: View {
 
             Text("\(Int(value * 100))% завершено")
                 .font(.caption)
+                .fontDesign(.serif)
                 .foregroundStyle(MysticTheme.muted)
         }
     }

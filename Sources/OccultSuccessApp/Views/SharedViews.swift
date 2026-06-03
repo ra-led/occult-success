@@ -7,7 +7,7 @@ struct MysticBackground: View {
                 colors: [
                     MysticTheme.void,
                     MysticTheme.ink,
-                    Color(red: 0.01, green: 0.015, blue: 0.018)
+                    Color(red: 0.012, green: 0.012, blue: 0.012)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -121,10 +121,10 @@ private struct Planet: View {
 private struct Comet: View {
     var body: some View {
         ZStack(alignment: .trailing) {
-            Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [.clear, .cyan.opacity(0.09), .white.opacity(0.24)],
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                        colors: [.clear, .white.opacity(0.07), .white.opacity(0.22)],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -159,7 +159,7 @@ struct GlassPanel<Content: View>: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(
                         LinearGradient(
-                            colors: [MysticTheme.gold.opacity(0.7), .white.opacity(0.12), MysticTheme.emerald.opacity(0.32)],
+                            colors: [MysticTheme.gold.opacity(0.58), .white.opacity(0.12), MysticTheme.bone.opacity(0.3)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
@@ -181,14 +181,15 @@ extension View {
 
 enum MysticTheme {
     static let void = Color(red: 0.006, green: 0.008, blue: 0.012)
-    static let ink = Color(red: 0.018, green: 0.026, blue: 0.038)
-    static let panel = Color(red: 0.035, green: 0.038, blue: 0.044)
-    static let field = Color(red: 0.015, green: 0.018, blue: 0.022)
-    static let gold = Color(red: 0.91, green: 0.68, blue: 0.34)
-    static let emerald = Color(red: 0.14, green: 0.72, blue: 0.47)
+    static let ink = Color(red: 0.024, green: 0.024, blue: 0.026)
+    static let panel = Color(red: 0.036, green: 0.035, blue: 0.034)
+    static let field = Color(red: 0.014, green: 0.014, blue: 0.014)
+    static let gold = Color(red: 0.82, green: 0.70, blue: 0.52)
+    static let bone = Color(red: 0.78, green: 0.76, blue: 0.70)
     static let text = Color(red: 0.96, green: 0.94, blue: 0.89)
-    static let muted = Color(red: 0.66, green: 0.68, blue: 0.70)
-    static let danger = Color(red: 1.0, green: 0.42, blue: 0.42)
+    static let muted = Color(red: 0.66, green: 0.65, blue: 0.62)
+    static let danger = Color(red: 0.86, green: 0.78, blue: 0.68)
+    static let graphite = Color(red: 0.24, green: 0.235, blue: 0.225)
 }
 
 struct MysticPageTitle: View {
@@ -202,7 +203,7 @@ struct MysticPageTitle: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(MysticTheme.gold)
             Text(title)
-                .font(.system(size: 34, weight: .semibold, design: .serif))
+                .font(.system(size: 36, weight: .semibold, design: .serif))
                 .foregroundStyle(MysticTheme.text)
             if let subtitle {
                 Text(subtitle)
@@ -223,7 +224,7 @@ struct MysticField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(.system(.caption, design: .serif).weight(.semibold))
                 .foregroundStyle(MysticTheme.gold.opacity(0.9))
             Group {
                 if isSecure {
@@ -257,7 +258,7 @@ struct MysticTextBox: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(.system(.caption, design: .serif).weight(.semibold))
                 .foregroundStyle(MysticTheme.gold.opacity(0.9))
             TextEditor(text: $text)
                 .foregroundStyle(MysticTheme.text)
@@ -289,7 +290,7 @@ struct MysticButton: View {
                     Image(systemName: systemImage)
                 }
                 Text(title)
-                    .font(.callout.weight(.semibold))
+                    .font(.system(.callout, design: .serif).weight(.semibold))
             }
             .foregroundStyle(.black)
             .frame(maxWidth: .infinity)

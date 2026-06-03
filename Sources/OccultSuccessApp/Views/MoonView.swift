@@ -21,14 +21,14 @@ struct MoonView: View {
                                 HStack(alignment: .top) {
                                     VStack(alignment: .leading, spacing: 8) {
                                         Text(moon.phaseName)
-                                            .font(.callout.weight(.medium))
+                                            .font(.system(.callout, design: .serif).weight(.medium))
                                             .foregroundStyle(MysticTheme.muted)
                                         Text("\(moon.number)")
                                             .font(.system(size: 92, weight: .light, design: .serif))
                                             .foregroundStyle(MysticTheme.text)
                                             .lineLimit(1)
                                         Text("лунный день")
-                                            .font(.title3.weight(.medium))
+                                            .font(.system(.title3, design: .serif).weight(.medium))
                                             .foregroundStyle(MysticTheme.gold)
                                     }
                                     Spacer()
@@ -42,7 +42,7 @@ struct MoonView: View {
                                     Text("\(Int(moon.illumination * 100))%")
                                         .font(.system(size: 44, weight: .light, design: .rounded))
                                     Text("освещённость")
-                                        .font(.callout)
+                                        .font(.system(.callout, design: .serif))
                                         .foregroundStyle(MysticTheme.muted)
                                 }
 
@@ -57,13 +57,14 @@ struct MoonView: View {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Час успеха", systemImage: "bell.badge")
                                 .font(.title3.weight(.semibold))
+                                .fontDesign(.serif)
                                 .foregroundStyle(MysticTheme.gold)
                             Text("Пуш приходит в лучший момент дня, когда пора действовать: сделать звонок, отправить заявку или начать то, что откладывали.")
                                 .foregroundStyle(MysticTheme.muted)
                             if subscriptionStore.isTrialActive {
                                 Label("Бесплатный период: ещё \(subscriptionStore.trialDaysRemaining) дн.", systemImage: "gift")
                                     .font(.callout.weight(.semibold))
-                                    .foregroundStyle(MysticTheme.emerald)
+                                    .foregroundStyle(MysticTheme.bone)
                             }
 
                             if subscriptionStore.isSuccessHourUnlocked {
@@ -81,7 +82,7 @@ struct MoonView: View {
                                 if let hour = appState.lastSuccessHour {
                                     Text("Следующее окно: \(DateFormatter.shortMystic.string(from: hour.startsAt))")
                                         .font(.footnote)
-                                        .foregroundStyle(MysticTheme.emerald)
+                                        .foregroundStyle(MysticTheme.bone)
                                 }
                             } else {
                                 MysticButton(title: "Открыть по подписке", systemImage: "lock.open") {
@@ -119,7 +120,7 @@ private struct MoonOrb: View {
                     Circle()
                         .fill(
                             RadialGradient(
-                                colors: [.white.opacity(0.95), .blue.opacity(0.4), .clear],
+                                colors: [.white.opacity(0.95), MysticTheme.bone.opacity(0.38), .clear],
                                 center: .topLeading,
                                 startRadius: 2,
                                 endRadius: 82

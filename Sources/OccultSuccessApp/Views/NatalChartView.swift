@@ -35,7 +35,7 @@ struct NatalChartView: View {
 
                             VStack(alignment: .leading, spacing: 7) {
                                 Text("Дата и время")
-                                    .font(.caption.weight(.semibold))
+                                    .font(.system(.caption, design: .serif).weight(.semibold))
                                     .foregroundStyle(MysticTheme.gold.opacity(0.9))
                                 DatePicker("", selection: $input.birthDate, displayedComponents: [.date, .hourAndMinute])
                                     .datePickerStyle(.compact)
@@ -89,6 +89,7 @@ struct NatalChartView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text(chart.name)
                                     .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                 if let location = chart.location {
                                     MysticInfoRow(title: "Место", value: location.title)
@@ -109,6 +110,7 @@ struct NatalChartView: View {
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("LLM-расшифровка")
                                     .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                 MysticButton(title: "Расшифровать через GPT-5.4", systemImage: "sparkles", isLoading: isInterpreting) {
                                     Task { await interpretNatalChart(chart) }
@@ -137,6 +139,7 @@ struct NatalChartView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("Дома")
                                     .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                 ForEach(chart.houses) { house in
                                     MysticInfoRow(title: "\(house.number)", value: house.formattedPosition)
@@ -148,6 +151,7 @@ struct NatalChartView: View {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("Аспекты")
                                     .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
                                     .foregroundStyle(MysticTheme.gold)
                                 if chart.aspects.isEmpty {
                                     Text("Мажорных аспектов с орбом до 6° нет.")
@@ -224,6 +228,7 @@ private struct HouseSystemSelector: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Система домов")
                 .font(.caption.weight(.semibold))
+                .fontDesign(.serif)
                 .foregroundStyle(MysticTheme.gold.opacity(0.9))
             HStack(spacing: 8) {
                 ForEach(HouseSystem.allCases) { system in
@@ -232,6 +237,7 @@ private struct HouseSystemSelector: View {
                     } label: {
                         Text(system.rawValue)
                             .font(.caption.weight(.semibold))
+                            .fontDesign(.serif)
                             .foregroundStyle(selection == system ? .black : MysticTheme.text)
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
@@ -273,7 +279,7 @@ private struct LocationPreview: View {
                     location.title,
                     coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
                 )
-                .tint(.yellow)
+                .tint(MysticTheme.gold)
             }
             .frame(height: 180)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -294,10 +300,12 @@ private struct MysticInfoRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(title)
                 .font(.callout)
+                .fontDesign(.serif)
                 .foregroundStyle(MysticTheme.muted)
             Spacer(minLength: 8)
             Text(value)
                 .font(.callout.weight(.medium))
+                .fontDesign(.serif)
                 .foregroundStyle(MysticTheme.text)
                 .multilineTextAlignment(.trailing)
         }
@@ -324,7 +332,7 @@ private struct NatalChartWheelView: View {
                             colors: [
                                 Color.indigo.opacity(0.45),
                                 Color.black.opacity(0.35),
-                                Color.purple.opacity(0.18)
+                                MysticTheme.graphite.opacity(0.72)
                             ],
                             center: .center,
                             startRadius: 20,
@@ -347,10 +355,10 @@ private struct NatalChartWheelView: View {
 
                 ForEach(chart.houses) { house in
                     ChartRadialLine(center: center, radius: outerRadius * 0.94, longitude: house.longitude)
-                        .stroke(house.number == 1 || house.number == 10 ? .mint.opacity(0.9) : .cyan.opacity(0.45), lineWidth: house.number == 1 || house.number == 10 ? 2.4 : 1.2)
+                        .stroke(house.number == 1 || house.number == 10 ? MysticTheme.gold.opacity(0.78) : MysticTheme.muted.opacity(0.38), lineWidth: house.number == 1 || house.number == 10 ? 2.4 : 1.2)
                     Text("\(house.number)")
                         .font(.caption2.bold())
-                        .foregroundStyle(.mint)
+                        .foregroundStyle(MysticTheme.gold.opacity(0.9))
                         .position(point(center: center, radius: houseRadius, longitude: house.longitude + 4))
                 }
 
@@ -402,17 +410,17 @@ private struct NatalChartWheelView: View {
 
     private func color(for body: CelestialBody) -> Color {
         switch body {
-        case .sun: return .yellow
-        case .moon: return .white
-        case .mercury: return .cyan
-        case .venus: return .pink
-        case .mars: return .red
-        case .jupiter: return .orange
-        case .saturn: return .brown
-        case .uranus: return .mint
-        case .neptune: return .blue
-        case .pluto: return .purple
-        case .ascendant, .midheaven: return .green
+        case .sun: return MysticTheme.gold
+        case .moon: return MysticTheme.text
+        case .mercury: return MysticTheme.muted
+        case .venus: return Color(red: 0.84, green: 0.81, blue: 0.74)
+        case .mars: return Color(red: 0.72, green: 0.69, blue: 0.63)
+        case .jupiter: return Color(red: 0.88, green: 0.84, blue: 0.76)
+        case .saturn: return Color(red: 0.58, green: 0.56, blue: 0.52)
+        case .uranus: return Color(red: 0.76, green: 0.76, blue: 0.73)
+        case .neptune: return Color(red: 0.68, green: 0.68, blue: 0.66)
+        case .pluto: return Color(red: 0.62, green: 0.60, blue: 0.57)
+        case .ascendant, .midheaven: return MysticTheme.gold.opacity(0.88)
         }
     }
 }
@@ -457,11 +465,11 @@ private struct AspectLines: View {
 
     private func color(for kind: AspectKind) -> Color {
         switch kind {
-        case .conjunction: return .white
-        case .sextile: return .mint
-        case .square: return .red
-        case .trine: return .blue
-        case .opposition: return .orange
+        case .conjunction: return MysticTheme.text
+        case .sextile: return MysticTheme.muted
+        case .square: return MysticTheme.gold.opacity(0.75)
+        case .trine: return Color(red: 0.74, green: 0.72, blue: 0.68)
+        case .opposition: return Color(red: 0.58, green: 0.56, blue: 0.52)
         }
     }
 }

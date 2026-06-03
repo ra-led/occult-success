@@ -18,6 +18,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("OpenRouter")
                                 .font(.title3.weight(.semibold))
+                                .fontDesign(.serif)
                                 .foregroundStyle(MysticTheme.gold)
                             MysticField(title: "API key", text: $appState.openRouterAPIKey, isSecure: true)
                             MysticField(title: "Base URL", text: $appState.openRouterBaseURL)
@@ -32,6 +33,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 14) {
                             Text("Подписка")
                                 .font(.title3.weight(.semibold))
+                                .fontDesign(.serif)
                                 .foregroundStyle(MysticTheme.gold)
 
                             if subscriptionStore.isTrialActive {
@@ -46,7 +48,7 @@ struct SettingsView: View {
                                 get: { subscriptionStore.devUnlocked },
                                 set: { subscriptionStore.devUnlocked = $0 }
                             ))
-                            .tint(MysticTheme.emerald)
+                            .tint(MysticTheme.bone)
 
                             MysticButton(title: "Обновить StoreKit", systemImage: "arrow.clockwise") {
                                 Task { await subscriptionStore.refresh() }
@@ -89,5 +91,6 @@ private struct SettingRow: View {
                 .fontWeight(.medium)
         }
         .font(.callout)
+        .fontDesign(.serif)
     }
 }
