@@ -31,7 +31,6 @@ struct OccultSuccessApp: App {
 @MainActor
 final class AppState: ObservableObject {
     @Published var moonDay: MoonDay?
-    @Published var rituals: [Ritual] = Ritual.seed
     @Published var dreamInterpretations: [DreamInterpretation] = []
     @Published var natalChart: NatalChart?
     @Published var lastSuccessHour: SuccessHour?
@@ -51,19 +50,27 @@ final class AppState: ObservableObject {
 
     func refreshToday(now: Date = .now) async {
         moonDay = moonService.moonDay(for: now)
+        refreshSuccessHour(now: now)
     }
 
     func calculateNatalChart(input: NatalChartInput) {
         natalChart = natalCalculator.calculate(input: input)
+        refreshSuccessHour()
     }
 
-    func toggleRitualStep(_ stepID: RitualStep.ID, in ritualID: Ritual.ID) {
-        guard let ritualIndex = rituals.firstIndex(where: { $0.id == ritualID }),
-              let stepIndex = rituals[ritualIndex].steps.firstIndex(where: { $0.id == stepID }) else { return }
-        rituals[ritualIndex].steps[stepIndex].isDone.toggle()
+    func refreshSuccessHour(now: Date = .now) {
+        guard let natalChart, let moonDay else {
+            lastSuccessHour = nil
+            return
+        }
+        lastSuccessHour = successScheduler.calculateWindow(natalChart: natalChart, moonDay: moonDay, now: now)
     }
 
     func scheduleSuccessHour() async throws {
-        lastSuccessHour = try await successScheduler.scheduleRandomWindow()
+        refreshSuccessHour()
+        guard let lastSuccessHour else {
+            throw NSError(domain: "SuccessHour", code: 2, userInfo: [NSLocalizedDescriptionKey: "Сначала рассчитайте натальную карту."])
+        }
+        try await successScheduler.scheduleWindow(lastSuccessHour)
     }
 }

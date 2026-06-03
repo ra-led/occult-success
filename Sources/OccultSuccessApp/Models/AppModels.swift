@@ -6,7 +6,14 @@ struct MoonDay: Identifiable, Equatable {
     let phaseName: String
     let illumination: Double
     let cycleFraction: Double
-    let advice: String
+    let guidance: MoonGuidance
+}
+
+struct MoonGuidance: Equatable {
+    let title: String
+    let description: String
+    let focus: String
+    let actions: [String]
 }
 
 struct NatalChartInput: Equatable {
@@ -224,52 +231,12 @@ struct DreamSymbol: Decodable, Equatable, Identifiable {
     var id: String { name }
 }
 
-struct Ritual: Identifiable, Equatable {
-    let id = UUID()
-    var title: String
-    var subtitle: String
-    var accent: String
-    var steps: [RitualStep]
-
-    var progress: Double {
-        guard !steps.isEmpty else { return 0 }
-        return Double(steps.filter(\.isDone).count) / Double(steps.count)
-    }
-
-    static let seed: [Ritual] = [
-        Ritual(
-            title: "Ритуал ясного намерения",
-            subtitle: "7 минут перед важным действием",
-            accent: "sparkles",
-            steps: [
-                RitualStep(title: "Сформулировать одно действие на сегодня"),
-                RitualStep(title: "Записать желаемый результат в настоящем времени"),
-                RitualStep(title: "Поставить таймер на 7 минут тишины"),
-                RitualStep(title: "Сделать первый практический шаг сразу после таймера")
-            ]
-        ),
-        Ritual(
-            title: "Денежный фокус",
-            subtitle: "Короткая практика для сделки или продажи",
-            accent: "banknote",
-            steps: [
-                RitualStep(title: "Открыть список текущих возможностей"),
-                RitualStep(title: "Выбрать одну самую близкую к деньгам"),
-                RitualStep(title: "Написать сообщение или сделать звонок"),
-                RitualStep(title: "Отметить результат без оценки")
-            ]
-        )
-    ]
-}
-
-struct RitualStep: Identifiable, Equatable {
-    let id = UUID()
-    var title: String
-    var isDone = false
-}
-
 struct SuccessHour: Identifiable, Equatable {
     let id = UUID()
     let startsAt: Date
     let endsAt: Date
+    let locationName: String
+    let timeZoneIdentifier: String
+    let reason: String
+    let score: Int
 }

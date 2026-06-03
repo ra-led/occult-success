@@ -2,8 +2,6 @@ import SwiftUI
 
 struct MoonView: View {
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var subscriptionStore: SubscriptionStore
-    @State private var schedulingError: String?
 
     var body: some View {
         NavigationStack {
@@ -12,7 +10,7 @@ struct MoonView: View {
                     MysticPageTitle(
                         eyebrow: "Лунный календарь",
                         title: "Сегодня",
-                        subtitle: "Состояние ночного ритма, фаза и окно действия."
+                        subtitle: "Состояние ночного ритма, фаза и практический смысл дня."
                     )
 
                     if let moon = appState.moonDay {
@@ -46,54 +44,34 @@ struct MoonView: View {
                                         .foregroundStyle(MysticTheme.muted)
                                 }
 
-                                Text(moon.advice)
-                                    .font(.body)
-                                    .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text(moon.guidance.title)
+                                        .font(.system(.title3, design: .serif).weight(.semibold))
+                                        .foregroundStyle(MysticTheme.bone)
+                                    Text(moon.guidance.description)
+                                        .font(.body)
+                                        .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                }
                             }
                         }
-                    }
 
-                    GlassPanel {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Label("Час успеха", systemImage: "bell.badge")
-                                .font(.title3.weight(.semibold))
-                                .fontDesign(.serif)
-                                .foregroundStyle(MysticTheme.gold)
-                            Text("Пуш приходит в лучший момент дня, когда пора действовать: сделать звонок, отправить заявку или начать то, что откладывали.")
-                                .foregroundStyle(MysticTheme.muted)
-                            if subscriptionStore.isTrialActive {
-                                Label("Бесплатный период: ещё \(subscriptionStore.trialDaysRemaining) дн.", systemImage: "gift")
-                                    .font(.callout.weight(.semibold))
-                                    .foregroundStyle(MysticTheme.bone)
-                            }
+                        GlassPanel {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Label("Фокус дня: \(moon.guidance.focus)", systemImage: "scope")
+                                    .font(.title3.weight(.semibold))
+                                    .fontDesign(.serif)
+                                    .foregroundStyle(MysticTheme.gold)
 
-                            if subscriptionStore.isSuccessHourUnlocked {
-                                MysticButton(title: "Запланировать окно", systemImage: "wand.and.stars") {
-                                    Task {
-                                        do {
-                                            try await appState.scheduleSuccessHour()
-                                            schedulingError = nil
-                                        } catch {
-                                            schedulingError = error.localizedDescription
-                                        }
+                                ForEach(moon.guidance.actions, id: \.self) { action in
+                                    HStack(alignment: .top, spacing: 9) {
+                                        Text("•")
+                                            .foregroundStyle(MysticTheme.gold)
+                                        Text(action)
+                                            .font(.callout)
+                                            .foregroundStyle(MysticTheme.text.opacity(0.9))
+                                            .fixedSize(horizontal: false, vertical: true)
                                     }
                                 }
-
-                                if let hour = appState.lastSuccessHour {
-                                    Text("Следующее окно: \(DateFormatter.shortMystic.string(from: hour.startsAt))")
-                                        .font(.footnote)
-                                        .foregroundStyle(MysticTheme.bone)
-                                }
-                            } else {
-                                MysticButton(title: "Открыть по подписке", systemImage: "lock.open") {
-                                    Task { await subscriptionStore.buySuccessHour() }
-                                }
-                            }
-
-                            if let schedulingError {
-                                Text(schedulingError)
-                                    .font(.footnote)
-                                    .foregroundStyle(MysticTheme.danger)
                             }
                         }
                     }

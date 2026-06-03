@@ -1,22 +1,29 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var selectedTab: AppTab = .moon
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             MoonView()
                 .tabItem { Label("Луна", systemImage: "moon.stars") }
+                .tag(AppTab.moon)
 
             NatalChartView()
                 .tabItem { Label("Карта", systemImage: "sparkles") }
+                .tag(AppTab.natal)
 
             DreamBookView()
                 .tabItem { Label("Сонник", systemImage: "cloud.moon") }
+                .tag(AppTab.dream)
 
-            RitualsView()
-                .tabItem { Label("Ритуалы", systemImage: "flame") }
+            SuccessHourView(selectedTab: $selectedTab)
+                .tabItem { Label("Час", systemImage: "bell.badge") }
+                .tag(AppTab.successHour)
 
             SettingsView()
                 .tabItem { Label("Настройки", systemImage: "gearshape") }
+                .tag(AppTab.settings)
         }
         .tint(MysticTheme.gold)
         #if os(iOS)
@@ -24,6 +31,14 @@ struct ContentView: View {
         .toolbarColorScheme(.dark, for: .tabBar)
         #endif
     }
+}
+
+enum AppTab: Hashable {
+    case moon
+    case natal
+    case dream
+    case successHour
+    case settings
 }
 
 #Preview {
