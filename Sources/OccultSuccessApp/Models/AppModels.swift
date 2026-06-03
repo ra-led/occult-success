@@ -200,8 +200,28 @@ enum ZodiacSign: String, CaseIterable, Identifiable {
 struct DreamInterpretation: Identifiable, Equatable {
     let id = UUID()
     let dream: String
-    let text: String
+    let report: DreamInterpretationReport
     let createdAt: Date
+}
+
+struct DreamInterpretationReport: Decodable, Equatable {
+    let sections: [DreamInterpretationSection]
+}
+
+struct DreamInterpretationSection: Decodable, Equatable, Identifiable {
+    let title: String
+    let paragraphs: [String]
+    let symbols: [DreamSymbol]
+    let bullets: [String]
+
+    var id: String { title }
+}
+
+struct DreamSymbol: Decodable, Equatable, Identifiable {
+    let name: String
+    let meaning: String
+
+    var id: String { name }
 }
 
 struct Ritual: Identifiable, Equatable {
