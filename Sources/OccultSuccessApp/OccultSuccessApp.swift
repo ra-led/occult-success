@@ -33,6 +33,7 @@ final class AppState: ObservableObject {
     @Published var moonDay: MoonDay?
     @Published var dreamInterpretations: [DreamInterpretation] = []
     @Published var natalChart: NatalChart?
+    @Published var successLocation: BirthLocation?
     @Published var lastSuccessHour: SuccessHour?
     @Published var openRouterAPIKey: String = UserDefaults.standard.string(forKey: "openRouterAPIKey") ?? "" {
         didSet { UserDefaults.standard.set(openRouterAPIKey, forKey: "openRouterAPIKey") }
@@ -63,7 +64,12 @@ final class AppState: ObservableObject {
             lastSuccessHour = nil
             return
         }
-        lastSuccessHour = successScheduler.calculateWindow(natalChart: natalChart, moonDay: moonDay, now: now)
+        lastSuccessHour = successScheduler.calculateWindow(natalChart: natalChart, moonDay: moonDay, location: successLocation, now: now)
+    }
+
+    func setSuccessLocation(_ location: BirthLocation?) {
+        successLocation = location
+        refreshSuccessHour()
     }
 
     func scheduleSuccessHour() async throws {

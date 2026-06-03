@@ -5,6 +5,13 @@ struct SuccessHourView: View {
     @EnvironmentObject private var subscriptionStore: SubscriptionStore
     @Binding var selectedTab: AppTab
     @State private var schedulingError: String?
+    @State private var locationQuery = ""
+    @State private var locationSuggestions: [BirthLocation] = []
+    @State private var isSearchingLocation = false
+    @State private var locationError: String?
+    @State private var selectedLocationTitle: String?
+
+    private let locationSearch = BirthLocationSearchService()
 
     var body: some View {
         NavigationStack {
@@ -19,6 +26,15 @@ struct SuccessHourView: View {
                     if appState.natalChart == nil {
                         MissingNatalChartPanel(selectedTab: $selectedTab)
                     } else if let hour = appState.lastSuccessHour {
+                        ActionLocationPanel(
+                            query: $locationQuery,
+                            selectedLocation: appState.successLocation,
+                            suggestions: locationSuggestions,
+                            isSearching: isSearchingLocation,
+                            errorMessage: locationError,
+                            selectLocation: selectLocation,
+                            resetLocation: resetLocation
+                        )
                         SuccessWindowPanel(hour: hour)
                         AccessPanel(
                             hour: hour,
@@ -35,7 +51,7 @@ struct SuccessHourView: View {
                                 .font(.title3.weight(.semibold))
                                 .fontDesign(.serif)
                                 .foregroundStyle(MysticTheme.gold)
-                            Text("Расчёт берёт часовой пояс и координаты места рождения, положение Солнца, Луны и ASC в натальной карте, а затем накладывает текущий лунный день. Получается детерминированное окно: при тех же данных оно будет тем же самым.")
+                            Text("Расчёт берёт вашу натальную карту как личную базу, а координаты и часовой пояс — из выбранного места действия. Если место не выбрано, используется город рождения из карты. При тех же данных окно будет тем же самым.")
                                 .font(.callout)
                                 .foregroundStyle(MysticTheme.text.opacity(0.9))
                         }
@@ -46,6 +62,17 @@ struct SuccessHourView: View {
             }
             .mysticScreen()
             .navigationTitle("")
+            .onChange(of: locationQuery) { _, _ in
+                guard locationQuery != selectedLocationTitle else { return }
+                selectedLocationTitle = nil
+                Task { await updateLocationSuggestions() }
+            }
+            .onAppear {
+                if let location = appState.successLocation {
+                    locationQuery = location.title
+                    selectedLocationTitle = location.title
+                }
+            }
         }
     }
 
@@ -57,6 +84,156 @@ struct SuccessHourView: View {
             } catch {
                 schedulingError = error.localizedDescription
             }
+        }
+    }
+
+    private func updateLocationSuggestions() async {
+        let query = locationQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            locationSuggestions = []
+            locationError = nil
+            return
+        }
+
+        isSearchingLocation = true
+        defer { isSearchingLocation = false }
+
+        do {
+            try await Task.sleep(nanoseconds: 350_000_000)
+            guard query == locationQuery.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+            locationSuggestions = try await locationSearch.searchCities(query)
+            locationError = nil
+        } catch is CancellationError {
+        } catch {
+            locationSuggestions = []
+            locationError = error.localizedDescription
+        }
+    }
+
+    private func selectLocation(_ location: BirthLocation) {
+        selectedLocationTitle = location.title
+        locationQuery = location.title
+        locationSuggestions = []
+        locationError = nil
+        appState.setSuccessLocation(location)
+    }
+
+    private func resetLocation() {
+        selectedLocationTitle = nil
+        locationQuery = ""
+        locationSuggestions = []
+        locationError = nil
+        appState.setSuccessLocation(nil)
+    }
+}
+
+private struct ActionLocationPanel: View {
+    @Binding var query: String
+    let selectedLocation: BirthLocation?
+    let suggestions: [BirthLocation]
+    let isSearching: Bool
+    let errorMessage: String?
+    let selectLocation: (BirthLocation) -> Void
+    let resetLocation: () -> Void
+
+    var body: some View {
+        GlassPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Место действия", systemImage: "location")
+                    .font(.title3.weight(.semibold))
+                    .fontDesign(.serif)
+                    .foregroundStyle(MysticTheme.gold)
+
+                Text("Выберите город, где хотите использовать окно. Время пересчитается под это место.")
+                    .font(.callout)
+                    .foregroundStyle(MysticTheme.muted)
+
+                MysticField(title: "Город для расчёта", text: $query)
+
+                if isSearching {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .tint(MysticTheme.bone)
+                        Text("Ищу город")
+                            .font(.caption)
+                            .foregroundStyle(MysticTheme.muted)
+                    }
+                }
+
+                if !suggestions.isEmpty {
+                    SuccessLocationSuggestionsView(suggestions: suggestions, onSelect: selectLocation)
+                }
+
+                if let selectedLocation {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(selectedLocation.title)
+                            .font(.system(.callout, design: .serif).weight(.semibold))
+                            .foregroundStyle(MysticTheme.bone)
+                        if !selectedLocation.subtitle.isEmpty {
+                            Text(selectedLocation.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(MysticTheme.muted)
+                        }
+                        Text(selectedLocation.coordinateSummary)
+                            .font(.caption)
+                            .foregroundStyle(MysticTheme.gold)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                    Button("Считать по месту рождения") {
+                        resetLocation()
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(MysticTheme.muted)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(MysticTheme.danger)
+                }
+            }
+        }
+    }
+}
+
+private struct SuccessLocationSuggestionsView: View {
+    let suggestions: [BirthLocation]
+    let onSelect: (BirthLocation) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(suggestions) { location in
+                Button {
+                    onSelect(location)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(location.title)
+                            .font(.system(.callout, design: .serif).weight(.semibold))
+                            .foregroundStyle(MysticTheme.text)
+                        if !location.subtitle.isEmpty {
+                            Text(location.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(MysticTheme.muted)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                }
+                .buttonStyle(.plain)
+
+                if location.id != suggestions.last?.id {
+                    MysticDivider()
+                }
+            }
+        }
+        .background(MysticTheme.field, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
         }
     }
 }

@@ -2,15 +2,16 @@ import Foundation
 import UserNotifications
 
 struct SuccessHourScheduler {
-    func calculateWindow(natalChart: NatalChart, moonDay: MoonDay, now: Date = .now) -> SuccessHour {
-        let timeZone = natalChart.location?.timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? .current
+    func calculateWindow(natalChart: NatalChart, moonDay: MoonDay, location selectedLocation: BirthLocation? = nil, now: Date = .now) -> SuccessHour {
+        let actionLocation = selectedLocation ?? natalChart.location
+        let timeZone = actionLocation?.timeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? .current
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
 
         let birthComponents = calendar.dateComponents([.hour, .minute], from: natalChart.calculatedBirthDate)
         let birthMinuteOfDay = (birthComponents.hour ?? 12) * 60 + (birthComponents.minute ?? 0)
         let moonPulse = Int((moonDay.cycleFraction * 720).rounded())
-        let placePulse = Int(((natalChart.location?.latitude ?? 0) * 3 + (natalChart.location?.longitude ?? 0) * 2).rounded())
+        let placePulse = Int(((actionLocation?.latitude ?? 0) * 3 + (actionLocation?.longitude ?? 0) * 2).rounded())
         let chartPulse = Int((natalChart.ascendantDegree + natalChart.midheavenDegree + natalChart.sunSign.successOffset + natalChart.moonSign.successOffset).rounded())
         let workingDayStart = 8 * 60
         let workingWindow = 12 * 60
@@ -23,8 +24,8 @@ struct SuccessHourScheduler {
         }
         let endsAt = startsAt.addingTimeInterval(60 * 60)
         let rawScore = 72 + Int(abs(sin(Double(chartPulse + moonPulse))) * 24)
-        let locationName = natalChart.location?.title ?? "текущему часовому поясу"
-        let reason = "Окно собрано по месту \(locationName), \(moonDay.number)-му лунному дню, Солнцу в знаке \(natalChart.sunSign.rawValue), Луне в знаке \(natalChart.moonSign.rawValue) и ASC \(natalChart.ascendant.rawValue)."
+        let locationName = actionLocation?.title ?? "текущему часовому поясу"
+        let reason = "Окно собрано по натальной карте: Солнце в знаке \(natalChart.sunSign.rawValue), Луна в знаке \(natalChart.moonSign.rawValue), ASC \(natalChart.ascendant.rawValue). Место действия: \(locationName), \(moonDay.number)-й лунный день."
 
         return SuccessHour(
             startsAt: startsAt,
